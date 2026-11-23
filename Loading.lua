@@ -22,7 +22,7 @@ local tweenSpeed = 16.0    -- até 21 studs/s (aba Tween)
 
 local MAX_COINS_NO_ELITE = 40
 local MAX_COINS_ELITE = 50
-local ELITE_GAMEPASS_IDS = { 10009123, 2382914 } -- Opcional: coloque IDs de Gamepass Elite se quiser forçar
+local ELITE_GAMEPASS_IDS = { 10009123, 2382914 }
 
 local cachedParts = {}
 local lastCacheRefresh = 0
@@ -36,18 +36,23 @@ local afkPlatformPart = nil
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "CoinHubGui"
 screenGui.ResetOnSpawn = false
+screenGui.IgnoreGuiInset = true
+screenGui.DisplayOrder = 999
 screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 screenGui.Parent = playerGui
 
 local floatBtn = Instance.new("TextButton")
 floatBtn.Name = "FloatButton"
-floatBtn.Size = UDim2.new(0, 56, 0, 56)
-floatBtn.Position = UDim2.new(0.06, 0, 0.30, 0)
+floatBtn.Size = UDim2.new(0, 58, 0, 58)
+floatBtn.Position = UDim2.new(0.05, 0, 0.35, 0)
 floatBtn.BackgroundColor3 = Color3.fromRGB(28, 30, 40)
 floatBtn.TextColor3 = Color3.fromRGB(255, 210, 45)
 floatBtn.Text = "HUB"
 floatBtn.Font = Enum.Font.GothamBold
 floatBtn.TextSize = 13
+floatBtn.Active = true
+floatBtn.Draggable = false
+floatBtn.ZIndex = 10
 floatBtn.Parent = screenGui
 
 Instance.new("UICorner", floatBtn).CornerRadius = UDim2.new(1, 0)
@@ -58,13 +63,15 @@ floatStroke.Thickness = 2
 local panel = Instance.new("Frame")
 panel.Name = "MainPanel"
 panel.Size = UDim2.new(0, 268, 0, 224)
-panel.Position = UDim2.new(0.06, 66, 0.30, -45)
+panel.Position = UDim2.new(0.05, 68, 0.35, -45)
 panel.BackgroundColor3 = Color3.fromRGB(22, 24, 32)
 panel.BorderSizePixel = 0
+panel.Active = true
 panel.Visible = false
+panel.ZIndex = 15
 panel.Parent = screenGui
 
-Instance.new("UICorner", panel).CornerRadius = UDim.new(0, 12)
+Instance.new("UICorner", panel).CornerRadius = UDim2.new(0, 12)
 local panelStroke = Instance.new("UIStroke", panel)
 panelStroke.Color = Color3.fromRGB(60, 65, 85)
 panelStroke.Thickness = 1.5
@@ -78,6 +85,7 @@ titleLabel.TextColor3 = Color3.fromRGB(240, 242, 248)
 titleLabel.Font = Enum.Font.GothamBold
 titleLabel.TextSize = 13
 titleLabel.TextXAlignment = Enum.TextXAlignment.Left
+titleLabel.ZIndex = 16
 titleLabel.Parent = panel
 
 -- ==========================================
@@ -87,6 +95,7 @@ local tabsFrame = Instance.new("Frame")
 tabsFrame.Size = UDim2.new(1, -16, 0, 30)
 tabsFrame.Position = UDim2.new(0, 8, 0, 32)
 tabsFrame.BackgroundTransparency = 1
+tabsFrame.ZIndex = 16
 tabsFrame.Parent = panel
 
 local function makeTab(text, index)
@@ -98,8 +107,10 @@ local function makeTab(text, index)
 	btn.Text = text
 	btn.Font = Enum.Font.GothamBold
 	btn.TextSize = 11
+	btn.Active = true
+	btn.ZIndex = 17
 	btn.Parent = tabsFrame
-	Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 7)
+	Instance.new("UICorner", btn).CornerRadius = UDim2.new(0, 7)
 	return btn
 end
 
@@ -107,14 +118,14 @@ local tabTP = makeTab("TP", 1)
 local tabTween = makeTab("Tween", 2)
 local tabFarm = makeTab("Farm XP", 3)
 
--- Área dinâmica de controle (muda conforme a aba)
 local controlArea = Instance.new("Frame")
 controlArea.Size = UDim2.new(1, -16, 0, 52)
 controlArea.Position = UDim2.new(0, 8, 0, 68)
 controlArea.BackgroundColor3 = Color3.fromRGB(29, 32, 42)
 controlArea.BorderSizePixel = 0
+controlArea.ZIndex = 16
 controlArea.Parent = panel
-Instance.new("UICorner", controlArea).CornerRadius = UDim.new(0, 8)
+Instance.new("UICorner", controlArea).CornerRadius = UDim2.new(0, 8)
 
 local sliderTitle = Instance.new("TextLabel")
 sliderTitle.Size = UDim2.new(1, -12, 0, 20)
@@ -124,6 +135,7 @@ sliderTitle.TextColor3 = Color3.fromRGB(210, 215, 230)
 sliderTitle.Font = Enum.Font.GothamMedium
 sliderTitle.TextSize = 11
 sliderTitle.TextXAlignment = Enum.TextXAlignment.Left
+sliderTitle.ZIndex = 17
 sliderTitle.Parent = controlArea
 
 local track = Instance.new("Frame")
@@ -131,24 +143,29 @@ track.Size = UDim2.new(1, -16, 0, 10)
 track.Position = UDim2.new(0, 8, 0, 30)
 track.BackgroundColor3 = Color3.fromRGB(50, 55, 72)
 track.BorderSizePixel = 0
+track.Active = true
+track.ZIndex = 17
 track.Parent = controlArea
-Instance.new("UICorner", track).CornerRadius = UDim.new(1, 0)
+Instance.new("UICorner", track).CornerRadius = UDim2.new(1, 0)
 
 local fill = Instance.new("Frame")
 fill.Size = UDim2.new(0.1, 0, 1, 0)
 fill.BackgroundColor3 = Color3.fromRGB(255, 200, 40)
 fill.BorderSizePixel = 0
+fill.ZIndex = 18
 fill.Parent = track
-Instance.new("UICorner", fill).CornerRadius = UDim.new(1, 0)
+Instance.new("UICorner", fill).CornerRadius = UDim2.new(1, 0)
 
 local knob = Instance.new("TextButton")
-knob.Size = UDim2.new(0, 18, 0, 18)
+knob.Size = UDim2.new(0, 20, 0, 20)
 knob.AnchorPoint = Vector2.new(0.5, 0.5)
 knob.Position = UDim2.new(0.1, 0, 0.5, 0)
 knob.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
 knob.Text = ""
+knob.Active = true
+knob.ZIndex = 19
 knob.Parent = track
-Instance.new("UICorner", knob).CornerRadius = UDim.new(1, 0)
+Instance.new("UICorner", knob).CornerRadius = UDim2.new(1, 0)
 
 local farmInfoLabel = Instance.new("TextLabel")
 farmInfoLabel.Size = UDim2.new(1, -12, 1, -6)
@@ -161,10 +178,10 @@ farmInfoLabel.TextWrapped = true
 farmInfoLabel.TextXAlignment = Enum.TextXAlignment.Left
 farmInfoLabel.TextYAlignment = Enum.TextYAlignment.Center
 farmInfoLabel.Text = "Inocente: Coins + AFK alto | Xerife: Atira no Murder | Murder: TP em quem tem faca (vivo)"
+farmInfoLabel.ZIndex = 17
 farmInfoLabel.Visible = false
 farmInfoLabel.Parent = controlArea
 
--- Botão Liga / Desliga logo abaixo das 3 áreas
 local toggleBtn = Instance.new("TextButton")
 toggleBtn.Name = "ToggleButton"
 toggleBtn.Size = UDim2.new(1, -16, 0, 36)
@@ -174,8 +191,10 @@ toggleBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 toggleBtn.Text = "DESLIGADO"
 toggleBtn.Font = Enum.Font.GothamBold
 toggleBtn.TextSize = 13
+toggleBtn.Active = true
+toggleBtn.ZIndex = 17
 toggleBtn.Parent = panel
-Instance.new("UICorner", toggleBtn).CornerRadius = UDim.new(0, 8)
+Instance.new("UICorner", toggleBtn).CornerRadius = UDim2.new(0, 8)
 
 local statusLabel = Instance.new("TextLabel")
 statusLabel.Size = UDim2.new(1, -16, 0, 42)
@@ -188,6 +207,7 @@ statusLabel.TextSize = 10
 statusLabel.TextWrapped = true
 statusLabel.TextXAlignment = Enum.TextXAlignment.Left
 statusLabel.TextYAlignment = Enum.TextYAlignment.Top
+statusLabel.ZIndex = 16
 statusLabel.Parent = panel
 
 -- ==========================================
@@ -273,15 +293,42 @@ track.InputBegan:Connect(function(input)
 	end
 end)
 
--- Arrastar Botão Flutuante
+-- ==========================================
+-- ABRIR/FECHAR PAINEL E ARRASTAR BOTÃO FLUTUANTE
+-- ==========================================
+local function positionPanelNearButton()
+	local viewport = workspace.CurrentCamera and workspace.CurrentCamera.ViewportSize or Vector2.new(1280, 720)
+	local btnPos = floatBtn.AbsolutePosition
+	local btnSize = floatBtn.AbsoluteSize
+	local panelW = panel.AbsoluteSize.X
+	local panelH = panel.AbsoluteSize.Y
+
+	local targetX = btnPos.X + btnSize.X + 10
+	if targetX + panelW > viewport.X - 10 then
+		targetX = math.max(10, btnPos.X - panelW - 10)
+	end
+
+	local targetY = math.clamp(btnPos.Y - 40, 10, math.max(10, viewport.Y - panelH - 10))
+	panel.Position = UDim2.fromOffset(targetX, targetY)
+end
+
+local function togglePanel()
+	panel.Visible = not panel.Visible
+	if panel.Visible then
+		positionPanelNearButton()
+	end
+end
+
+floatBtn.Activated:Connect(function()
+	togglePanel()
+end)
+
 local draggingFloat = false
-local movedWhileDragging = false
 local dragStartPos, floatStartPos
 
 floatBtn.InputBegan:Connect(function(input)
 	if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
 		draggingFloat = true
-		movedWhileDragging = false
 		dragStartPos = input.Position
 		floatStartPos = floatBtn.Position
 	end
@@ -292,33 +339,24 @@ UserInputService.InputChanged:Connect(function(input)
 		updateSliderFromX(input.Position.X)
 	elseif draggingFloat and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
 		local delta = input.Position - dragStartPos
-		if delta.Magnitude > 6 then
-			movedWhileDragging = true
+		if delta.Magnitude > 4 then
+			floatBtn.Position = UDim2.new(
+				floatStartPos.X.Scale,
+				floatStartPos.X.Offset + delta.X,
+				floatStartPos.Y.Scale,
+				floatStartPos.Y.Offset + delta.Y
+			)
+			if panel.Visible then
+				positionPanelNearButton()
+			end
 		end
-		floatBtn.Position = UDim2.new(
-			floatStartPos.X.Scale,
-			floatStartPos.X.Offset + delta.X,
-			floatStartPos.Y.Scale,
-			floatStartPos.Y.Offset + delta.Y
-		)
-		panel.Position = UDim2.new(
-			floatBtn.Position.X.Scale,
-			floatBtn.Position.X.Offset + 66,
-			floatBtn.Position.Y.Scale,
-			floatBtn.Position.Y.Offset - 45
-		)
 	end
 end)
 
 UserInputService.InputEnded:Connect(function(input)
 	if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
 		draggingSlider = false
-		if draggingFloat then
-			draggingFloat = false
-			if not movedWhileDragging then
-				panel.Visible = not panel.Visible
-			end
-		end
+		draggingFloat = false
 	end
 end)
 
@@ -352,7 +390,6 @@ local function hasElitePass()
 		end
 	end
 
-	-- Tenta detectar indicador de Elite na interface/atributos/leaderstats
 	local eliteAttr = player:GetAttribute("Elite")
 	if eliteAttr == true then return true end
 
@@ -387,7 +424,6 @@ local function getCurrentCoinsCount()
 		return tonumber(bagAttr)
 	end
 
-	-- Fallback: lê número em algum TextLabel de Coins/Bag na tela do jogador
 	for _, obj in ipairs(playerGui:GetDescendants()) do
 		if obj:IsA("TextLabel") and not obj:IsDescendantOf(screenGui) then
 			local parentName = string.lower(obj.Parent and obj.Parent.Name or "")
@@ -486,7 +522,6 @@ end
 -- MOVIMENTO: TP E TWEEN (EMBAIXO DA COIN)
 -- ==========================================
 local function teleportBelowPart(character, rootPart, part)
-	-- Fica logo abaixo da moeda para dificultar ser atingido de cima
 	local destCFrame = CFrame.new(part.Position - Vector3.new(0, 3.2, 0))
 	pcall(function() character:PivotTo(destCFrame) end)
 	pcall(function()
@@ -572,7 +607,6 @@ local function hasGunEquipped(plr)
 end
 
 local function detectRole()
-	-- 1. Se você tem faca equipada ou na mochila -> Murder
 	local char = player.Character
 	local bp = player:FindFirstChildOfClass("Backpack")
 	if char then
@@ -590,12 +624,10 @@ local function detectRole()
 		end
 	end
 
-	-- 2. Se você tem arma/revólver -> Xerife
 	if hasGunEquipped(player) then
 		return "SHERIFF"
 	end
 
-	-- 3. Atributo/Time caso exista
 	local roleAttr = player:GetAttribute("Role") or player:GetAttribute("Team")
 	if type(roleAttr) == "string" then
 		local r = string.lower(roleAttr)
@@ -625,7 +657,6 @@ local function shootAtMurder(character, rootPart)
 	local mHrp = murder.Character:FindFirstChild("HumanoidRootPart")
 	if not mHrp then return end
 
-	-- Mira de frente para o Murder
 	rootPart.CFrame = CFrame.lookAt(rootPart.Position, Vector3.new(mHrp.Position.X, rootPart.Position.Y, mHrp.Position.Z))
 
 	local gun = hasGunEquipped(player)
@@ -634,7 +665,6 @@ local function shootAtMurder(character, rootPart)
 		task.wait(0.1)
 	end
 
-	-- Tenta ativar Tool no cliente e disparar RemoteEvent comum de tiro se existir
 	if gun then
 		pcall(function() gun:Activate() end)
 		for _, rem in ipairs(gun:GetDescendants()) do
@@ -657,7 +687,6 @@ local function shootAtMurder(character, rootPart)
 end
 
 local function goToHighSkyPlatform(character, rootPart)
-	-- Cria uma plataforma bem alta no céu caso ainda não exista
 	if not afkPlatformPart or not afkPlatformPart.Parent then
 		local plat = Instance.new("Part")
 		plat.Name = "SkyAfkPlatform_Hub"
@@ -682,7 +711,6 @@ local function goToHighSkyPlatform(character, rootPart)
 end
 
 local function murderHuntKnifeHolders(character, rootPart)
-	-- Só pega jogadores VIVOS que estejam com a FACA na mão
 	for _, plr in ipairs(Players:GetPlayers()) do
 		if plr ~= player and isPlayerAlive(plr) and hasKnifeEquipped(plr) then
 			local targetHrp = plr.Character and plr.Character:FindFirstChild("HumanoidRootPart")
@@ -742,7 +770,6 @@ task.spawn(function()
 						murderHuntKnifeHolders(character, rootPart)
 						task.wait(0.6)
 					else
-						-- Inocente ou Xerife: coleta moedas primeiro
 						local coinPart, dist = findNearestCoinPart(rootPart.Position, character)
 						if coinPart then
 							teleportBelowPart(character, rootPart, coinPart)
