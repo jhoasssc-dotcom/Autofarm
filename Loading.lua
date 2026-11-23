@@ -32,6 +32,9 @@ local mode = "TP" -- "TP" | "TWEEN" | "FARM_XP"
 local tpDelay = 2.0
 local tweenSpeed = 20.0
 
+local needInitialTp = true
+local lastCharacter = nil
+
 local coinCache = {}
 local lastCacheUpdate = 0
 local currentTween = nil
@@ -174,7 +177,7 @@ farmSummary.TextSize = 9.5
 farmSummary.TextWrapped = true
 farmSummary.TextXAlignment = Enum.TextXAlignment.Left
 farmSummary.TextYAlignment = Enum.TextYAlignment.Center
-farmSummary.Text = "Inocente: Tween Coins + AFK alto | Xerife: Tween Coins + Tiro | Murder: TP faca (vivo)"
+farmSummary.Text = "Inocente: TP 1ª coin + Tween | Xerife: TP 1ª + Tween/Tiro | Murder: TP faca"
 farmSummary.Visible = false
 farmSummary.Parent = modeBox
 
@@ -278,6 +281,7 @@ end
 
 local function selectMode(newMode)
 	mode = newMode
+	needInitialTp = true
 	if currentTween then
 		pcall(function() currentTween:Cancel() end)
 		currentTween = nil
@@ -311,7 +315,6 @@ local function updateSliderFromX(xPos)
 		local val = MIN_DELAY + (MAX_DELAY - MIN_DELAY) * alpha
 		tpDelay = math.floor(val * 10 + 0.5) / 10
 	else
-		-- TWEEN e FARM_XP usam o controlador de velocidade de 1 até 40
 		local val = 1.0 + (MAX_TWEEN_SPEED - 1.0) * alpha
 		tweenSpeed = math.min(MAX_TWEEN_SPEED, math.floor(val * 10 + 0.5) / 10)
 	end
@@ -387,6 +390,8 @@ toggleBtn.MouseButton1Click:Connect(function()
 	end
 
 	if running then
+		-- Ao ativar, marca para teleportar apenas na primeira moeda e depois seguir por Tween
+		needInitialTp = true
 		toggleBtn.BackgroundColor3 = Color3.fromRGB(40, 165, 90)
 		toggleBtn.Text = "LIGADO"
 		statusLabel.Text = "Status: Ligado (" .. mode .. ")"
@@ -453,6 +458,7 @@ local function handleBagLimitReset()
 		if hum then
 			hum.Health = 0
 		end
+		needInitialTp = true
 		task.wait(2.5)
 		return true
 	end
@@ -460,7 +466,7 @@ local function handleBagLimitReset()
 end
 
 -- ==========================================
--- BUSCA DE MOEDAS ("coin") SEM REPETIR A MESMA
+-- BUSCA DE MOEDAS ("coin")
 -- ==========================================
 local function isCoinAvailable(part)
 	if not part or not part:IsDescendantOf(workspace) then
@@ -551,7 +557,7 @@ local function getClosestCoin(origin, charModel, ignoreRecentTp)
 end
 
 -- ==========================================
--- MOVIMENTO: TP (PULA SÓ SE NÃO COLETOU) & TWEEN (POR CIMA)
+-- MOVIMENTO: TP & TWEEN (POR CIMA)
 -- ==========================================
 local function doSingleJump(charModel)
 	local hum = charModel and charModel:FindFirstChildOfClass("Humanoid")
@@ -563,7 +569,7 @@ local function doSingleJump(charModel)
 	end
 end
 
-local function teleportAndJumpIfNeeded(charModel, hrp, part)
+local function teleportToPart(charModel, hrp, part, checkJumpIfNeeded)
 	local coinsBefore = readBagCoinsCount()
 	local targetCf = CFrame.new(part.Position + Vector3.new(0, 1.5, 0))
 	pcall(function()
@@ -574,17 +580,17 @@ local function teleportAndJumpIfNeeded(charModel, hrp, part)
 	end)
 	visitedTpCoins[part] = os.clock()
 
-	-- Aguarda brevemente para checar se o teleporte já coletou a moeda
-	task.wait(0.12)
-	local coinsAfter = readBagCoinsCount()
-	local collectedByCount = (coinsBefore ~= nil and coinsAfter ~= nil and coinsAfter > coinsBefore)
-	local stillThere = isCoinAvailable(part)
-
-	if not collectedByCount and stillThere then
-		doSingleJump(charModel)
-		return true -- precisou pular
+	if checkJumpIfNeeded then
+		task.wait(0.12)
+		local coinsAfter = readBagCoinsCount()
+		local collectedByCount = (coinsBefore ~= nil and coinsAfter ~= nil and coinsAfter > coinsBefore)
+		local stillThere = isCoinAvailable(part)
+		if not collectedByCount and stillThere then
+			doSingleJump(charModel)
+			return true
+		end
 	end
-	return false -- já coletou direto
+	return false
 end
 
 local function flyAbovePart(hrp, part, stopCondition)
@@ -785,6 +791,11 @@ task.spawn(function()
 	while true do
 		if running then
 			local charModel = player.Character
+			if charModel ~= lastCharacter then
+				lastCharacter = charModel
+				needInitialTp = true
+			end
+
 			local hrp = charModel and charModel:FindFirstChild("HumanoidRootPart")
 
 			if charModel and hrp then
@@ -793,7 +804,7 @@ task.spawn(function()
 					if not handleBagLimitReset() then
 						local coin, dist = getClosestCoin(hrp.Position, charModel, true)
 						if coin then
-							local jumped = teleportAndJumpIfNeeded(charModel, hrp, coin)
+							local jumped = teleportToPart(charModel, hrp, coin, true)
 							local tag = jumped and "TP+Pulo" or "TP"
 							statusLabel.Text = string.format("%s: %s (%.0f) | %.1fs", tag, coin.Name, dist, tpDelay)
 						else
@@ -808,8 +819,15 @@ task.spawn(function()
 					if not handleBagLimitReset() then
 						local coin, dist = getClosestCoin(hrp.Position, charModel, false)
 						if coin then
-							statusLabel.Text = string.format("Tween (%.1f): %s (%.0f)", tweenSpeed, coin.Name, dist)
-							flyAbovePart(hrp, coin, function() return mode == "TWEEN" end)
+							if needInitialTp then
+								needInitialTp = false
+								teleportToPart(charModel, hrp, coin, false)
+								statusLabel.Text = string.format("TP 1ª coin -> Tween: %s", coin.Name)
+								task.wait(0.15)
+							else
+								statusLabel.Text = string.format("Tween (%.1f): %s (%.0f)", tweenSpeed, coin.Name, dist)
+								flyAbovePart(hrp, coin, function() return mode == "TWEEN" end)
+							end
 						else
 							statusLabel.Text = "Tween: Nenhuma coin encontrada"
 							task.wait(0.5)
@@ -826,8 +844,15 @@ task.spawn(function()
 					else
 						local coin, dist = getClosestCoin(hrp.Position, charModel, false)
 						if coin then
-							statusLabel.Text = string.format("XP [%s] Tween (%.1f): %s", role, tweenSpeed, coin.Name)
-							flyAbovePart(hrp, coin, function() return mode == "FARM_XP" end)
+							if needInitialTp then
+								needInitialTp = false
+								teleportToPart(charModel, hrp, coin, false)
+								statusLabel.Text = string.format("XP [%s] TP 1ª -> Tween: %s", role, coin.Name)
+								task.wait(0.15)
+							else
+								statusLabel.Text = string.format("XP [%s] Tween (%.1f): %s", role, tweenSpeed, coin.Name)
+								flyAbovePart(hrp, coin, function() return mode == "FARM_XP" end)
+							end
 						else
 							if role == "SHERIFF" then
 								fireAtMurder(charModel, hrp)
